@@ -4,7 +4,6 @@
 
 Wave_Header waveHeader;
 Sub_Chunk subChunk;
-extern short* AudioData;
 
 void write_little_endian(unsigned int word, int num_bytes, FILE* wav_file)
 {
@@ -18,7 +17,7 @@ void write_little_endian(unsigned int word, int num_bytes, FILE* wav_file)
 	}
 }
 
-int* read_wav(char* filename, Fmt_Header* fmtHeader, short* data)
+int* read_wav(char* filename, Fmt_Header* fmtHeader, short** data)
 {
 	FILE* fp_in;
 	int nSamples;
@@ -48,8 +47,8 @@ int* read_wav(char* filename, Fmt_Header* fmtHeader, short* data)
 	}
 
 	nSamples = subChunk.Size / 2;
-	AudioData = (short*)malloc(sizeof(short) * nSamples);
-	fread(AudioData, sizeof(short), nSamples, fp_in);
+	*data = (short*)malloc(sizeof(short) * nSamples);
+	fread(*data, sizeof(short), nSamples, fp_in);
 	fclose(fp_in);
 
 	return nSamples;
@@ -57,7 +56,7 @@ int* read_wav(char* filename, Fmt_Header* fmtHeader, short* data)
 
 void write_wav(char* filename, unsigned long num_samples, short* data, int s_rate)
 {
-	FILE* wav_file;
+	FILE* wav_file=NULL;
 	unsigned int sample_rate;
 	unsigned int num_channels;
 	unsigned int bytes_per_sample;
