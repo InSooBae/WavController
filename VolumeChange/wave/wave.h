@@ -20,7 +20,7 @@ typedef struct {
 #endif
 /*
 
-Watch the wave format structure at 
+Watch the wave format structure at
 http://soundfile.sapp.org/doc/WaveFormat/
 
 */
@@ -28,7 +28,6 @@ http://soundfile.sapp.org/doc/WaveFormat/
 /*
 The WAVE file's size is typically 0~44bytes
 */
-
 
 /*
 The canonical WAVE format starts with the RIFF header
