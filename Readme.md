@@ -2,6 +2,10 @@
 
 To modify a wav file or raw file.
 
+Infile = Input data , Outfile = Output data 
+
+> You must follow the order. (e.g. Infile Outfile)
+
 When you want to change volume,
 run:
 ```
