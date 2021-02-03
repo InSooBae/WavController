@@ -68,3 +68,5 @@ typedef struct {
 extern Sub_Chunk subChunk;
 extern void write_wav(char* filename, unsigned long num_samples, short* data, int s_rate);
 extern int* read_wav(char* filename, Fmt_Header* fmtHeader, short* data);
+extern int read_raw(char* filename, short** data);
+extern void write_raw(char* filename, unsigned long num_samples, short* data);

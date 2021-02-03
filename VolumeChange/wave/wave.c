@@ -17,7 +17,7 @@ void write_little_endian(unsigned int word, int num_bytes, FILE* wav_file)
 	}
 }
 
-int* read_wav(char* filename, Fmt_Header* fmtHeader, short** data,int mode)
+int* read_wav(char* filename, Fmt_Header* fmtHeader, short** data)
 {
 	FILE* fp_in;
 	int nSamples;
@@ -28,29 +28,24 @@ int* read_wav(char* filename, Fmt_Header* fmtHeader, short** data,int mode)
 		printf("file open error : %s\n", filename);
 		return 0;
 	}
-	if (mode == 0 || mode == 1) {
-		fread(&waveHeader, sizeof(Wave_Header), 1, fp_in);
-		fread(&subChunk, sizeof(Sub_Chunk), 1, fp_in);
-		fread(fmtHeader, sizeof(Fmt_Header), 1, fp_in);
 
-		fseek(fp_in, subChunk.Size - sizeof(Fmt_Header), SEEK_CUR);
-		while (1)
+	fread(&waveHeader, sizeof(Wave_Header), 1, fp_in);
+	fread(&subChunk, sizeof(Sub_Chunk), 1, fp_in);
+	fread(fmtHeader, sizeof(Fmt_Header), 1, fp_in);
+
+	fseek(fp_in, subChunk.Size - sizeof(Fmt_Header), SEEK_CUR);
+	while (1)
+	{
+		fread(&subChunk, sizeof(Sub_Chunk), 1, fp_in);
+		if (*(unsigned int*)&subChunk.ID == 0x61746164)		// subChunk ID 가 "data" 인지 확인
 		{
-			fread(&subChunk, sizeof(Sub_Chunk), 1, fp_in);
-			if (*(unsigned int*)&subChunk.ID == 0x61746164)		// subChunk ID 가 "data" 인지 확인
-			{
-				break;
-			}
-			// "data" Chunk 가 아닐 경우 chunk data byte 만큼 skip 한다.
-			fseek(fp_in, subChunk.Size, SEEK_CUR);
+			break;
 		}
-		nSamples = subChunk.Size / 2;
+		// "data" Chunk 가 아닐 경우 chunk data byte 만큼 skip 한다.
+		fseek(fp_in, subChunk.Size, SEEK_CUR);
 	}
-	else if (mode == 2) {
-		fseek(fp_in, 0, SEEK_END);
-		nSamples = ftell(fp_in);
-		nSamples /= 2;
-	}
+	nSamples = subChunk.Size / 2;
+
 	*data = (short*)malloc(sizeof(short) * nSamples);
 	fread(*data, sizeof(short), nSamples, fp_in);
 	fclose(fp_in);
@@ -58,7 +53,27 @@ int* read_wav(char* filename, Fmt_Header* fmtHeader, short** data,int mode)
 	return nSamples;
 }
 
-void write_wav(char* filename, unsigned long num_samples, short* data, int s_rate, int mode)
+int read_raw(char* filename, short** data) {
+	FILE* fp_in;
+	int nSamples;
+
+	fp_in = fopen(filename, "rb");
+	if (fp_in == NULL)
+	{
+		printf("file open error : %s\n", filename);
+		return 0;
+	}
+	fseek(fp_in, 0, SEEK_END);
+	nSamples = ftell(fp_in);
+	nSamples /= 2;
+	*data = (short*)malloc(sizeof(short) * nSamples);
+	fread(*data, sizeof(short), nSamples, fp_in);
+	fclose(fp_in);
+
+	return nSamples;
+}
+
+void write_wav(char* filename, unsigned long num_samples, short* data, int s_rate)
 {
 	FILE* wav_file = NULL;
 	unsigned int sample_rate;
@@ -77,30 +92,40 @@ void write_wav(char* filename, unsigned long num_samples, short* data, int s_rat
 
 	wav_file = fopen(filename, "wb");
 	assert(wav_file);   /* make sure it opened */
-	if (mode == 0 ) {
+
 		/* write RIFF header */
-		fwrite("RIFF", 1, 4, wav_file);
-		write_little_endian(36 + bytes_per_sample * num_samples * num_channels, 4, wav_file);
-		fwrite("WAVE", 1, 4, wav_file);
+	fwrite("RIFF", 1, 4, wav_file);
+	write_little_endian(36 + bytes_per_sample * num_samples * num_channels, 4, wav_file);
+	fwrite("WAVE", 1, 4, wav_file);
 
-		/* write fmt  subchunk */
-		fwrite("fmt ", 1, 4, wav_file);
-		write_little_endian(16, 4, wav_file);   /* SubChunk1Size is 16 */
-		write_little_endian(1, 2, wav_file);    /* PCM is format 1 */
-		write_little_endian(num_channels, 2, wav_file);
-		write_little_endian(sample_rate, 4, wav_file);
-		write_little_endian(byte_rate, 4, wav_file);
-		write_little_endian(num_channels * bytes_per_sample, 2, wav_file);  /* block align */
-		write_little_endian(8 * bytes_per_sample, 2, wav_file);  /* bits/sample */
+	/* write fmt  subchunk */
+	fwrite("fmt ", 1, 4, wav_file);
+	write_little_endian(16, 4, wav_file);   /* SubChunk1Size is 16 */
+	write_little_endian(1, 2, wav_file);    /* PCM is format 1 */
+	write_little_endian(num_channels, 2, wav_file);
+	write_little_endian(sample_rate, 4, wav_file);
+	write_little_endian(byte_rate, 4, wav_file);
+	write_little_endian(num_channels * bytes_per_sample, 2, wav_file);  /* block align */
+	write_little_endian(8 * bytes_per_sample, 2, wav_file);  /* bits/sample */															
+	/* write data subchunk */
+	fwrite("data", 1, 4, wav_file); 
+	write_little_endian(bytes_per_sample * num_samples * num_channels, 4, wav_file);
 
-																 /* write data subchunk */
-		fwrite("data", 1, 4, wav_file);
-		write_little_endian(bytes_per_sample * num_samples * num_channels, 4, wav_file);
-	}
 	//for (i = 0; i< num_samples; i++)
 	//{
 	//	write_little_endian((unsigned int)(data[i]), bytes_per_sample, wav_file);
 	//}
+
+	fwrite(data, sizeof(short), num_samples, wav_file);
+
+	fclose(wav_file);
+}
+
+void write_raw(char* filename, unsigned long num_samples, short* data)
+{
+	FILE* wav_file = NULL;
+	wav_file = fopen(filename, "wb");
+	assert(wav_file);   /* make sure it opened */
 
 	fwrite(data, sizeof(short), num_samples, wav_file);
 
