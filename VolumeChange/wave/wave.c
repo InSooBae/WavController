@@ -54,7 +54,7 @@ int* read_wav(char* filename, Fmt_Header* fmtHeader, short** data)
 	return nSamples;
 }
 
-void write_wav(char* filename, unsigned long num_samples, short* data, int s_rate)
+void write_wav(char* filename, unsigned long num_samples, short* data, int s_rate, int mode)
 {
 	FILE* wav_file=NULL;
 	unsigned int sample_rate;
@@ -73,26 +73,26 @@ void write_wav(char* filename, unsigned long num_samples, short* data, int s_rat
 
 	wav_file = fopen(filename, "wb");
 	assert(wav_file);   /* make sure it opened */
+	if (mode == 0) {
+		/* write RIFF header */
+		fwrite("RIFF", 1, 4, wav_file);
+		write_little_endian(36 + bytes_per_sample * num_samples * num_channels, 4, wav_file);
+		fwrite("WAVE", 1, 4, wav_file);
 
-	/* write RIFF header */
-	fwrite("RIFF", 1, 4, wav_file);
-	write_little_endian(36 + bytes_per_sample * num_samples * num_channels, 4, wav_file);
-	fwrite("WAVE", 1, 4, wav_file);
+		/* write fmt  subchunk */
+		fwrite("fmt ", 1, 4, wav_file);
+		write_little_endian(16, 4, wav_file);   /* SubChunk1Size is 16 */
+		write_little_endian(1, 2, wav_file);    /* PCM is format 1 */
+		write_little_endian(num_channels, 2, wav_file);
+		write_little_endian(sample_rate, 4, wav_file);
+		write_little_endian(byte_rate, 4, wav_file);
+		write_little_endian(num_channels * bytes_per_sample, 2, wav_file);  /* block align */
+		write_little_endian(8 * bytes_per_sample, 2, wav_file);  /* bits/sample */
 
-	/* write fmt  subchunk */
-	fwrite("fmt ", 1, 4, wav_file);
-	write_little_endian(16, 4, wav_file);   /* SubChunk1Size is 16 */
-	write_little_endian(1, 2, wav_file);    /* PCM is format 1 */
-	write_little_endian(num_channels, 2, wav_file);
-	write_little_endian(sample_rate, 4, wav_file);
-	write_little_endian(byte_rate, 4, wav_file);
-	write_little_endian(num_channels * bytes_per_sample, 2, wav_file);  /* block align */
-	write_little_endian(8 * bytes_per_sample, 2, wav_file);  /* bits/sample */
-
-															 /* write data subchunk */
-	fwrite("data", 1, 4, wav_file);
-	write_little_endian(bytes_per_sample * num_samples * num_channels, 4, wav_file);
-
+																 /* write data subchunk */
+		fwrite("data", 1, 4, wav_file);
+		write_little_endian(bytes_per_sample * num_samples * num_channels, 4, wav_file);
+	}
 	//for (i = 0; i< num_samples; i++)
 	//{
 	//	write_little_endian((unsigned int)(data[i]), bytes_per_sample, wav_file);
