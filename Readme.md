@@ -1,4 +1,4 @@
-## WAV MODIFIER
+## WAV Controller
 
 To modify a wav file or raw file.
 
