@@ -131,3 +131,10 @@ void write_raw(char* filename, unsigned long num_samples, short* data)
 
 	fclose(wav_file);
 }
+
+void free_audio(short* data) {
+	if (data != NULL)
+	{
+		free(data);
+	}
+}
